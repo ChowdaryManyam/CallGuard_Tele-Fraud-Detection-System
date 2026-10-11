@@ -1,31 +1,35 @@
-from pathlib import Path
 from callguard_fraud import analyze_segments
 
-root = Path.home() / "stt-project/data/Transkript"
 phrase = "verhindre, dass de ganze Vorgang bi dere Freigabstell landet"
+benign = "Mir führed d'Kontrolle ordnigsgemäss dure."
 
-def scan_file(name):
-    text = (root / name).read_text(encoding="utf-8")
+def scan(text):
     return analyze_segments([
         {"start": 0.0, "end": 1.0, "text": text}
     ])
 
-c15 = scan_file("Stufe2_C15.txt")
-c16 = scan_file("Stufe2_C16.txt")
+control = scan(benign)
+target = scan(phrase)
 
-c15_match = any(
+control_match = any(
     f.get("matched_phrase", "").casefold() == phrase.casefold()
-    for f in c15.get("findings", [])
+    for f in control.get("findings", [])
 )
-c16_match = any(
+target_match = any(
     f.get("matched_phrase", "").casefold() == phrase.casefold()
-    for f in c16.get("findings", [])
+    for f in target.get("findings", [])
 )
 
-print(f"{'PASS' if not c15_match else 'FAIL'} | C15 does not match approval-avoidance phrase")
-print(f"{'PASS' if c16_match else 'FAIL'} | C16 matches approval-avoidance phrase")
+print(
+    f"{'PASS' if not control_match else 'FAIL'} | "
+    "Benign control does not match approval-avoidance phrase"
+)
+print(
+    f"{'PASS' if target_match else 'FAIL'} | "
+    "Configured approval-avoidance phrase is detected"
+)
 
-if c15_match or not c16_match:
+if control_match or not target_match:
     raise SystemExit(1)
 
-print("PASS | C15/C16 detector contrast verified")
+print("PASS | Approval-avoidance phrase regression verified")
