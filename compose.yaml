@@ -1,0 +1,25 @@
+services:
+  api:
+    build:
+      context: ./backend
+    environment:
+      WHISPER_MODEL: ${WHISPER_MODEL:-large-v3}
+      CALLGUARD_DB_PATH: /data/callguard_reviews.sqlite3
+    volumes:
+      - reviews_data:/data
+      - whisper_cache:/root/.cache/huggingface
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "8000:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  reviews_data:
+  whisper_cache:

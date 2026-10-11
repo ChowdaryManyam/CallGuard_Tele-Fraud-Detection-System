@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CallGuard — Bank Compliance</title>
+<style>
+:root {
+  color-scheme:light;
+  --bg:#f5f9ff;--surface:#fff;--soft:#edf4fc;
+  --navy:#10233c;--navy2:#172d49;--text:#12233d;
+  --muted:#7285a1;--border:#e2ebf5;--blue:#1769ef;
+  --blue-soft:#eaf3ff;--red:#f21e25;--red-soft:#fff0f0;
+  --orange:#ed8200;--orange-soft:#fff3e3;
+  --syn:#1670f9;--syn-soft:#eaf3ff;
+  --shadow:0 2px 10px rgba(25,60,100,.035);
+}
+body.dark {
+  color-scheme:dark;
+  --bg:#0d1725;--surface:#142236;--soft:#1b2c43;
+  --navy:#091421;--navy2:#12243a;--text:#eaf2ff;
+  --muted:#9bacc4;--border:#2b405a;--blue:#4389ff;
+  --blue-soft:#1c3555;--red-soft:#401f2a;
+  --orange-soft:#3c3020;--syn-soft:#1b3150;
+  --shadow:0 2px 12px rgba(0,0,0,.12);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+ font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-size:14px}
+button,input,textarea{font:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.app{min-height:100vh;display:grid;grid-template-columns:185px minmax(0,1fr)}
+.sidebar{background:linear-gradient(160deg,var(--navy),var(--navy2));color:#f4f7ff;
+ padding:17px 11px;display:flex;flex-direction:column;gap:24px}
+.brand{display:flex;align-items:center;gap:10px;padding:0 7px 9px}
+.brand-icon{width:35px;height:39px;border-radius:11px;background:linear-gradient(150deg,#398bff,#0755d5);
+ display:grid;place-items:center;font-size:23px;color:white}
+.brand-name{font-size:18px;font-weight:750;letter-spacing:-.5px}
+.brand-sub{font-size:10px;color:#b8c9df;margin-top:2px}
+.nav{display:grid;gap:8px}
+.nav button{border:0;background:transparent;color:#d3deee;border-radius:9px;padding:12px 13px;
+ display:flex;align-items:center;gap:11px;text-align:left}
+.nav button.active{background:linear-gradient(100deg,#247cff,#1261e8);color:white}
+.nav button:hover:not(.active){background:#ffffff10}
+.nav-icon{width:17px;text-align:center;font-size:18px}
+.side-bottom{margin-top:auto}
+.main{min-width:0}
+.topbar{height:55px;border-bottom:1px solid var(--border);display:flex;align-items:center;
+ justify-content:flex-end;padding:0 24px;gap:13px}
+.theme-switch{display:flex;align-items:center;gap:4px;background:var(--surface);
+ border:1px solid var(--border);border-radius:30px;padding:4px}
+.theme-switch button{border:0;background:transparent;border-radius:50%;width:30px;height:30px;color:var(--muted);font-size:18px}
+.theme-switch button.active{background:var(--blue);color:white}
+.avatar{background:#7189a6;color:white;border:0;border-radius:9px;width:36px;height:36px;font-weight:700}
+.content{padding:12px 13px 22px}
+.page-heading{margin:0 0 17px 11px}
+.page-heading h1{font-size:27px;letter-spacing:-.8px;margin:0 0 3px;font-weight:750}
+.page-heading p{margin:0;color:var(--muted);font-size:15px}
+.workspace{display:grid;grid-template-columns:minmax(230px,.86fr) minmax(410px,1.68fr) minmax(330px,1.48fr);
+ gap:13px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:13px;box-shadow:var(--shadow);min-width:0}
+.upload-panel{padding:16px;align-self:start}
+.dropzone{border:1.5px dashed #c8d9ef;background:linear-gradient(150deg,var(--surface),var(--soft));
+ border-radius:9px;min-height:226px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+ text-align:center;padding:16px;cursor:pointer}
+.dropzone:hover,.dropzone.dragover{border-color:var(--blue);background:var(--blue-soft)}
+.cloud{font-size:44px;color:#1763c8;line-height:1.3;margin-bottom:9px}
+.dropzone strong{font-size:15px;margin-bottom:7px}
+.dropzone span{color:var(--muted);line-height:1.7}
+.dropzone .formats{font-size:12px;margin-top:7px}
+.file-card{display:flex;align-items:center;gap:10px;background:var(--soft);border:1px solid var(--border);
+ border-radius:9px;padding:11px;margin-top:10px;min-width:0}
+.music-icon{font-size:23px;color:var(--blue);background:var(--blue-soft);border-radius:8px;padding:7px}
+.file-meta{flex:1;min-width:0}
+.file-meta strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-meta small{display:block;color:var(--muted);margin-top:4px}
+.icon-btn{border:0;background:transparent;color:var(--muted);font-size:21px;padding:4px}
+.primary{background:var(--blue);color:white;border:0;border-radius:8px;padding:15px 12px;font-weight:650;
+ width:100%;margin-top:12px}
+.primary:hover{filter:brightness(1.07)}
+.primary:disabled{opacity:.6;cursor:wait}
+.processing{display:none;margin-top:16px;padding:15px;border-radius:9px;background:var(--blue-soft);border:1px solid var(--border)}
+.processing.show{display:block}
+.processing-head{display:flex;align-items:center;gap:10px}
+.spinner{height:30px;width:30px;border-radius:50%;border:3px solid #8bb9ff;border-top-color:var(--blue);
+ animation:spin .85s linear infinite;flex-shrink:0}
+.processing p{margin:4px 0;color:var(--muted);font-size:12px}
+.progress{height:5px;background:var(--border);border-radius:9px;overflow:hidden;margin-top:13px}
+.progress span{display:block;height:100%;width:0;background:var(--blue);transition:width .3s}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.center{display:flex;flex-direction:column;gap:13px}
+.result-card{overflow:hidden}
+.alert-head{padding:18px;display:flex;align-items:center;gap:14px;background:var(--blue-soft);border-bottom:1px solid var(--border)}
+.alert-symbol{font-size:38px;color:var(--blue);font-weight:700;line-height:1}
+.alert-copy{flex:1;min-width:0}
+.alert-copy h2{margin:0 0 4px;color:var(--blue);font-size:20px}
+.alert-copy p{margin:0;color:var(--muted);font-size:13px}
+.tabs{display:flex;border-bottom:1px solid var(--border);padding:0 8px}
+.tabs button{padding:14px 8px;border:0;border-bottom:3px solid transparent;color:var(--muted);
+ background:transparent;flex:1;white-space:nowrap}
+.tabs button.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:700}
+.empty-note{color:var(--muted);font-size:13px;padding:19px;line-height:1.55}
+.transcript-tab{padding:15px;color:var(--muted);line-height:1.6}
+.player{padding:15px;display:flex;align-items:center;gap:10px}
+.big-play{width:43px;height:43px;border:0;border-radius:50%;background:var(--blue);color:white;font-size:19px;flex-shrink:0}
+.wave-area{flex:1;min-width:0}
+.wave{height:43px;display:flex;align-items:center;gap:2px;cursor:pointer;overflow:hidden}
+
+.bar.wave-exact{background:#e54850!important}
+.bar.wave-context{background:#ed8b00!important}
+.bar.wave-synonym{background:#2864c5!important}
+
+.bar{flex:1;min-width:2px;border-radius:3px;background:#c8d8e9}
+body.dark .bar{background:#40546e}
+.player-bottom{display:flex;justify-content:flex-end;align-items:center;font-size:12px;color:var(--muted);gap:8px}
+.player-tools{display:flex;align-items:center;gap:7px;color:var(--blue)}
+.player-tools button{border:0;background:var(--soft);color:var(--blue);border-radius:20px;padding:8px}
+.assessment{padding:16px}
+.assessment h3{font-size:16px;margin:0 0 13px}
+.assessment-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.choice{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:13px 4px;
+ font-weight:650;font-size:12px;display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.choice.review{color:var(--blue);background:var(--blue-soft)}
+.choice.false{color:var(--orange);border-color:#ffbb57;background:var(--orange-soft)}
+.choice.fraud{color:var(--red);border-color:#ff777b;background:var(--red-soft)}
+.choice.selected{box-shadow:inset 0 0 0 2px currentColor}
+.comment-label{display:block;font-weight:600;margin:17px 0 8px}
+.comment-wrap{position:relative}
+textarea{width:100%;resize:vertical;min-height:78px;border:1px solid var(--border);border-radius:8px;
+ padding:12px;background:var(--surface);color:var(--text)}
+textarea::placeholder,input::placeholder{color:#8b9db5}
+.counter{position:absolute;right:12px;bottom:9px;color:var(--muted);font-size:11px}
+.save{margin-top:12px}
+.transcript-panel{padding:16px;display:flex;flex-direction:column;min-height:650px}
+.transcript-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.transcript-top h2{font-size:17px;margin:0}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted)}
+.legend span{white-space:nowrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
+.red-dot{background:var(--red)}.orange-dot{background:#ff9900}.blue-dot{background:var(--syn)}
+.search{margin:13px 0 10px;position:relative}
+.search input{width:100%;border:1px solid var(--border);border-radius:8px;padding:11px 12px 11px 36px;
+ background:var(--surface);color:var(--text)}
+.search:before{content:"⌕";position:absolute;left:12px;top:5px;font-size:25px;color:var(--muted)}
+.transcript-list{overflow:auto;max-height:calc(100vh - 250px);min-height:300px;padding-right:3px}
+.line{display:grid;grid-template-columns:59px minmax(0,1fr);gap:8px;align-items:start;padding:9px 7px;
+ border-radius:7px;margin-bottom:2px;line-height:1.45;cursor:pointer}
+.line:hover{background:var(--soft)}
+.line .stamp{color:var(--muted);font-size:12px;padding-top:1px}
+.line .words{min-width:0;overflow-wrap:anywhere}
+.evidence-mark{border-radius:3px;padding:1px 2px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.evidence-exact{background:#ffd6d8;color:#8f111b;text-decoration:underline;text-decoration-color:#c62828;text-decoration-thickness:2px}
+.evidence-context{background:#ffe4bd;color:#783b00;text-decoration:underline;text-decoration-color:#ed8b00;text-decoration-thickness:2px}
+.evidence-synonym{background:#d9e8ff;color:#123f91;text-decoration:underline;text-decoration-color:#2864c5;text-decoration-thickness:2px}
+body.dark .evidence-exact{background:#63252c;color:#ffe5e7}
+body.dark .evidence-context{background:#603b17;color:#ffebcc}
+body.dark .evidence-synonym{background:#193b69;color:#e0ecff}
+
+.line-inner{display:flex;align-items:start;gap:6px;justify-content:space-between}
+.history-view.active{display:block}
+.history-title{display:flex;justify-content:space-between;align-items:center;margin:10px 0 15px}
+.history-title h2{margin:0;font-size:24px}
+.history-row{display:flex;align-items:center;gap:12px;padding:15px;border-bottom:1px solid var(--border)}
+.status-pill{font-size:11px;border-radius:6px;padding:5px 7px;background:var(--soft);white-space:nowrap}
+.status-pill.red{background:var(--red-soft);color:var(--red)}
+.status-pill.orange{background:var(--orange-soft);color:var(--orange)}
+.status-pill.blue{background:var(--syn-soft);color:var(--syn)}
+.toast{position:fixed;bottom:22px;right:22px;background:var(--navy);color:white;padding:13px 18px;
+ border-radius:9px;box-shadow:var(--shadow);display:none;z-index:5}
+.toast.show{display:block;animation:fadeIn .2s}
+.hidden{display:none!important}
+@media(max-width:1250px){
+ .workspace{grid-template-columns:minmax(220px,.8fr) minmax(390px,1.4fr)}
+ .transcript-panel{grid-column:1/-1;min-height:400px}
+ .transcript-list{max-height:420px;min-height:250px}
+}
+@media(max-width:760px){
+ .app{grid-template-columns:65px minmax(0,1fr)}
+ .sidebar{padding:14px 7px}
+ .brand{padding:0;justify-content:center}
+ .brand-copy,.nav-label{display:none}
+ .nav button{justify-content:center;padding:13px 5px}
+ .nav-icon{font-size:21px}
+ .topbar{height:52px;padding:0 10px}
+ .content{padding:12px 8px}
+ .page-heading{margin-left:3px}
+ .page-heading h1{font-size:23px}
+ .workspace{grid-template-columns:minmax(0,1fr)}
+ .transcript-panel{grid-column:auto;min-height:400px}
+ .passage{grid-template-columns:10px 88px minmax(0,1fr) 32px;padding:12px 8px;gap:6px}
+ .alert-head{padding:13px;gap:8px}
+ .alert-copy h2{font-size:17px}
+ .assessment-options{gap:5px}
+ .choice{font-size:11px;white-space:normal}
+}
+</style>
+</head>
+<body>
+<div class="app">
+ <aside class="sidebar">
+  <div class="brand"><div class="brand-icon">⬡</div><div class="brand-copy"><div class="brand-name">CallGuard</div><div class="brand-sub">Bank Compliance</div></div></div>
+  <nav class="nav">
+   <button class="active" id="navNew"><span class="nav-icon">▣</span><span class="nav-label">New Analysis</span></button>
+   <button id="navHistory"><span class="nav-icon">◷</span><span class="nav-label">Call History</span></button>
+  </nav>
+  <nav class="nav side-bottom"><button id="navSettings"><span class="nav-icon">⚙</span><span class="nav-label">Settings</span></button></nav>
+ </aside>
+ <main class="main">
+  <header class="topbar">
+   <div class="theme-switch"><button id="lightBtn" title="Light mode">☀</button><button id="darkBtn" title="Dark mode">☾</button></div>
+   <button class="avatar" title="Demo profile">CM</button>
+  </header>
+  <div class="content">
+   <section id="analysisView">
+    <div class="page-heading"><h1>Audio Analysis</h1><p>Upload a Swiss German bank call to check for potential compliance issues.</p></div>
+    <div class="workspace">
+     <section class="panel upload-panel">
+      <label class="dropzone" id="dropzone" for="audioInput">
+       <div class="cloud">♧</div><strong>Drop an audio file here</strong><span>or click to browse</span>
+       <span class="formats">WAV, MP3, M4A, OGG, FLAC</span>
+      </label>
+      <input class="hidden" id="audioInput" type="file" accept="audio/*,.wav,.mp3,.m4a,.ogg,.flac">
+      <div id="fileCard" class="file-card hidden"><div class="music-icon">♫</div>
+       <div class="file-meta"><strong id="fileName">Audio file</strong><small id="fileInfo">Ready to analyse</small></div>
+       <button class="icon-btn" id="removeFile" aria-label="Remove file">×</button>
+      </div>
+      <button class="primary" id="analyseBtn">▶ &nbsp; Start Analysis</button>
+      <div class="processing" id="processing">
+       <div class="processing-head"><div class="spinner"></div><div><strong>Transcribing audio…</strong><p id="processText">Running Whisper large-v3 on the server</p></div></div>
+       <div class="progress"><span id="progressBar"></span></div>
+      </div>
+     </section>
+     <section class="center">
+      <section class="panel result-card">
+       <div class="alert-head"><div class="alert-symbol" id="alertSymbol">♪</div>
+        <div class="alert-copy"><h2 id="alertTitle">Ready for Analysis</h2><p id="alertDescription">Upload audio to generate a real transcript</p></div>
+        <div id="aggregateConfidence" style="display:none;flex:0 0 auto;min-width:96px;padding:10px 14px;border-radius:12px;background:#dc2626;color:white;text-align:center;box-sizing:border-box">
+         <strong id="aggregateConfidenceValue" style="display:block;font-size:25px;line-height:1.1">—%</strong>
+         <span style="display:block;font-size:11px;margin-top:3px">Avg. match confidence</span>
+         <div style="height:4px;background:#fecaca;border-radius:99px;overflow:hidden;margin-top:7px">
+          <div id="aggregateConfidenceBar" style="height:100%;width:0%;background:#ffffff;border-radius:99px"></div>
+         </div>
+        </div>
+       </div>
+       <div class="tabs">
+        <button data-tab="overview">Overview</button><button class="active" data-tab="passages">Detected Passages</button><button data-tab="transcript">Transcript</button>
+       </div>
+       <div id="passageList"><div class="empty-note">Upload an audio file to see real detection findings here.</div></div>
+       <div id="overviewText" class="transcript-tab hidden">No analysis has been run yet.</div>
+       <div id="transcriptTabText" class="transcript-tab hidden">The actual transcript appears in the panel on the right. Select a line to seek to its timestamp.</div>
+      </section>
+      <section class="panel player">
+       <button class="big-play" id="playBtn" aria-label="Play audio">▶</button>
+       <div class="wave-area"><div class="wave" id="wave" title="Click to seek through audio"></div>
+        <div class="player-bottom"><span id="durationText">0:00 / 0:00</span></div>
+       </div>
+       <div class="player-tools"><button id="muteBtn" title="Mute">◖))</button><button id="speedBtn" title="Playback speed">1×</button></div>
+      </section>
+      <section class="panel assessment">
+       <h3>Your assessment</h3>
+       <div class="assessment-options">
+        <button class="choice review" data-choice="Review">◎ &nbsp;Review</button>
+        <button class="choice false" data-choice="False alarm">× &nbsp;False alarm</button>
+        <button class="choice fraud" data-choice="Fraud detected">⚠ &nbsp;Fraud detected</button>
+       </div>
+       <label class="comment-label" for="comment">Add a comment (optional)</label>
+       <div class="comment-wrap"><textarea id="comment" maxlength="500" placeholder="Write your review or notes here..."></textarea><span class="counter" id="counter">0/500</span></div>
+       <button class="primary save" id="saveBtn">Save assessment &amp; continue &nbsp; →</button>
+      </section>
+     </section>
+     <section class="panel transcript-panel">
+      <div class="transcript-top"><h2>Transcript</h2>
+       <div class="legend">
+        <span><i class="red-dot"></i>Exact match</span><span><i class="orange-dot"></i>Context match</span><span><i class="blue-dot"></i>Synonym match</span>
+       </div>
+      </div>
+      <div class="search"><input id="transcriptSearch" type="search" placeholder="Search transcript..." aria-label="Search transcript"></div>
+      <div class="transcript-list" id="transcriptList"><div class="empty-note">Your transcript will appear here after analysis.</div></div>
+     </section>
+    </div>
+   </section>
+   <section id="historyView" class="hidden">
+    <div class="page-heading"><h1>Call History</h1><p>Previously reviewed recordings in this browser session.</p></div>
+    <div class="panel">
+     <div class="history-title" style="padding:16px 18px 0"><h2>Recent calls</h2><button class="primary" style="width:auto;margin:0" id="backToNew">＋ New Analysis</button></div>
+     <div id="historyList"></div>
+    </div>
+   </section>
+  </div>
+ </main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+<audio id="audio" preload="metadata"></audio>
+<script>
+const $=id=>document.getElementById(id);
+let selectedFile=null,objectUrl=null,chosenAssessment="",activeTab="passages",speed=1,records=[];
+let currentName="",transcriptSegments=[],realDuration=0,currentFraudDetection=null;
+
+function toast(message){
+ $("toast").textContent=message;$("toast").classList.add("show");
+ clearTimeout(toast.timer);toast.timer=setTimeout(()=>$("toast").classList.remove("show"),3500);
+}
+function setTheme(dark){
+ document.body.classList.toggle("dark",dark);
+ $("darkBtn").classList.toggle("active",dark);$("lightBtn").classList.toggle("active",!dark);
+ try{localStorage.setItem("callguard-theme",dark?"dark":"light")}catch(e){}
+}
+let savedTheme="light";try{savedTheme=localStorage.getItem("callguard-theme")||"light"}catch(e){}
+setTheme(savedTheme==="dark");
+$("lightBtn").onclick=()=>setTheme(false);$("darkBtn").onclick=()=>setTheme(true);
+
+function fmt(value){
+ const n=Math.max(0,Math.floor(Number(value)||0));
+ return Math.floor(n/60)+":"+String(n%60).padStart(2,"0");
+}
+function escapeHtml(value){
+ return String(value).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function buildTranscript(segments){
+ transcriptSegments=Array.isArray(segments)?segments:[];
+ const list=$("transcriptList");
+ if(!transcriptSegments.length){
+  list.innerHTML='<div class="empty-note">No speech segments were returned for this recording.</div>';
+  return;
+ }
+ const findings=Array.isArray(currentFraudDetection?.findings)?currentFraudDetection.findings:[];
+ const classes={exact:"evidence-exact",context:"evidence-context",synonym:"evidence-synonym"};
+ const priority={context:1,synonym:2,exact:3};
+
+ list.innerHTML=transcriptSegments.map((s,i)=>{
+  const start=Number(s.start)||0;
+  const end=Number(s.end)||start;
+  const raw=String(s.text||"");
+  const candidates=[];
+
+  findings.forEach(f=>{
+   const fs=Number(f.start)||0, fe=Number(f.end)||fs;
+   if(fs>end||fe<start)return;
+   const type=String(f.evidence_type||"").toLowerCase();
+   if(!classes[type])return;
+
+   // Context findings refer to their supporting sentence; direct matches
+   // use the matched phrase so they can retain their own color.
+   const target=String(
+    type==="context" ? (f.text||f.matched_phrase||"")
+                     : (f.matched_phrase||f.phrase||f.text||"")
+   ).trim();
+   if(!target)return;
+   const idx=raw.toLocaleLowerCase().indexOf(target.toLocaleLowerCase());
+   if(idx<0)return;
+   candidates.push({start:idx,end:idx+target.length,type});
+  });
+
+  const points=new Set([0,raw.length]);
+  candidates.forEach(c=>{points.add(c.start);points.add(c.end)});
+  const sorted=[...points].sort((a,b)=>a-b);
+  let words="";
+  for(let j=0;j<sorted.length-1;j++){
+   const a=sorted[j],b=sorted[j+1];
+   if(b<=a)continue;
+   const active=candidates.filter(c=>c.start<b&&c.end>a);
+   const winner=active.sort((x,y)=>priority[y.type]-priority[x.type])[0];
+   const text=escapeHtml(raw.slice(a,b));
+   words+=winner
+    ?`<mark class="evidence-mark ${classes[winner.type]}" title="${winner.type} match">${text}</mark>`
+    :text;
+  }
+
+  return `<div class="line" data-index="${i}" data-time="${start}">
+   <span class="stamp">${fmt(start)}</span><div class="line-inner"><span class="words">${words}</span></div></div>`;
+ }).join("");
+ $("transcriptSearch").value="";
+}
+
+function renderWave(){
+ const wave=$("wave");wave.innerHTML="";
+ for(let i=0;i<100;i++){
+  const h=6+Math.abs(Math.sin(i*2.18)*Math.cos(i*.41))*25;
+  const bar=document.createElement("span");
+  // Neutral waveform only. Fraud markers must come from real detection results.
+  bar.className="bar";bar.style.height=h+"px";bar.dataset.index=i;
+  wave.appendChild(bar);
+ }
+}
+function paintWave(){
+ const audio=$("audio");
+ const duration=Number.isFinite(audio.duration)&&audio.duration>0
+  ?audio.duration:realDuration;
+ const current=Number.isFinite(audio.currentTime)?audio.currentTime:0;
+ const ratio=duration>0?current/duration:0;
+ const findings=Array.isArray(currentFraudDetection?.findings)
+  ?currentFraudDetection.findings:[];
+ const wave=$("wave");
+ [...wave.children].forEach((bar,i)=>{
+  const start=duration>0?(i/100)*duration:0;
+  const end=duration>0?((i+1)/100)*duration:0;
+  const overlapping=findings.filter(f=>{
+   const fs=Number(f.start)||0;
+   const fe=Number(f.end)||fs;
+   return duration>0 && fs<=end && fe>=start;
+  });
+  const types=[...new Set(overlapping.map(
+   f=>String(f.evidence_type||"").toLowerCase()
+  ).filter(t=>["exact","context","synonym"].includes(t)))];
+  bar.className="bar";
+  bar.style.background="";
+  if(types.length>1){
+   const colors={exact:"#e54850",context:"#ed8b00",synonym:"#2864c5"};
+   const stops=types.map((t,j)=>{
+    const a=Math.round(j*100/types.length);
+    const b=Math.round((j+1)*100/types.length);
+    return `${colors[t]} ${a}% ${b}%`;
+   });
+   bar.style.background=`linear-gradient(90deg,${stops.join(",")})`;
+   bar.title=`${fmt(start)}–${fmt(end)} · ${types.join(", ")} matches`;
+  }else if(types.length===1){
+   bar.classList.add("wave-"+types[0]);
+  }
+  bar.style.opacity=i/100<=ratio?"1":".78";
+  bar.title=overlapping.length
+   ?`${fmt(start)}–${fmt(end)} · ${overlapping.length} flagged finding(s)`
+   :fmt(start);
+ });
+ $("durationText").textContent=fmt(current)+" / "+fmt(duration);
+}
+
+function renderFraudDetection(detection){
+ currentFraudDetection=detection||null;
+ const list=$("passageList");
+
+ if(!detection||!Array.isArray(detection.findings)){
+  list.innerHTML='<div class="empty-note">Fraud detection results were not returned by the API.</div>';
+  return;
+ }
+
+ const findings=detection.findings;
+ if(!findings.length){
+  list.innerHTML='<div class="empty-note">No configured rules matched this transcript. This does not prove the call is safe.</div>';
+  paintWave();
+  return;
+ }
+
+ const evidenceLabels={
+  exact:"Exact match",
+  context:"Context match",
+  synonym:"Synonym match"
+ };
+ const evidenceClasses={
+  exact:"evidence-exact",
+  context:"evidence-context",
+  synonym:"evidence-synonym"
+ };
+
+ list.innerHTML=findings.map(f=>{
+  const start=Number(f.start)||0;
+  const end=Number(f.end)||start;
+  const category=escapeHtml(f.category||"Configured rule");
+  const phrase=escapeHtml(f.matched_phrase||f.phrase||"Matched phrase");
+  const type=String(f.evidence_type||"").toLowerCase();
+  const label=evidenceLabels[type]||"Configured rule match";
+  const cls=evidenceClasses[type]||"";
+  const confidence=Number(f.confidence);
+  const confidenceText=Number.isFinite(confidence)
+   ?`Match confidence: ${Math.round(Math.max(0,Math.min(1,confidence))*100)}%`
+   :"Match confidence not provided";
+  return `<button type="button" class="finding-card" data-finding-time="${start}"
+   style="display:block;width:100%;text-align:left;margin:8px 0;padding:12px;border:1px solid #b8bec8;border-radius:10px;background:transparent;color:inherit;cursor:pointer">
+   <span style="display:block;font-size:12px;margin-bottom:5px">${fmt(start)}–${fmt(end)}</span>
+   <strong style="display:block;margin-bottom:5px">${category}</strong>
+   <span style="display:block">${phrase}</span>
+   <span class="evidence-mark ${cls}" style="display:inline-block;margin-top:8px">${escapeHtml(label)}</span>
+   <small style="display:block;margin-top:9px">${escapeHtml(confidenceText)}</small>
+   ${Number.isFinite(confidence)?`<div role="img" aria-label="Match confidence ${Math.round(Math.max(0,Math.min(1,confidence))*100)} percent" style="height:7px;margin-top:5px;background:#dbe4f0;border-radius:99px;overflow:hidden"><div style="height:100%;width:${Math.round(Math.max(0,Math.min(1,confidence))*100)}%;background:#2864c5;border-radius:99px"></div></div>`:""}
+   <small style="display:block;margin-top:6px">Rule match only · Review required; this is not a confirmed violation or an overall fraud probability.</small>
+  </button>`;
+ }).join("");
+ paintWave();
+}
+
+function resetResult(){
+ currentFraudDetection=null;
+ $("alertSymbol").textContent="♪";$("alertTitle").textContent="Ready for Analysis";
+ $("alertDescription").textContent="Upload audio to generate a real transcript";
+ $("aggregateConfidence").style.display="none";
+ $("passageList").innerHTML='<div class="empty-note">Upload an audio file to see real detection findings here.</div>';
+ $("overviewText").textContent="No analysis has been run yet.";
+ $("transcriptTabText").textContent="The actual transcript appears in the panel on the right. Select a line to seek to its timestamp.";
+ selectTab("passages");
+}
+function setFile(file){
+ if(!file)return;
+ if(!file.type.startsWith("audio/")&&!/\.(wav|mp3|m4a|ogg|flac|aac|webm)$/i.test(file.name)){
+  toast("Please choose a supported audio file.");return;
+ }
+ if(objectUrl)URL.revokeObjectURL(objectUrl);
+ selectedFile=file;currentName=file.name;objectUrl=URL.createObjectURL(file);
+ $("audio").src=objectUrl;$("fileCard").classList.remove("hidden");
+ $("fileName").textContent=file.name;
+ $("fileInfo").textContent=(file.size/1024/1024).toFixed(2)+" MB · Ready to analyse";
+ $("processing").classList.remove("show");$("analyseBtn").disabled=false;
+ transcriptSegments=[];buildTranscript([]);realDuration=0;renderWave();paintWave();resetResult();
+ toast("Audio file selected.");
+}
+$("audioInput").addEventListener("change",e=>setFile(e.target.files[0]));
+$("removeFile").onclick=()=>{
+ selectedFile=null;if(objectUrl)URL.revokeObjectURL(objectUrl);objectUrl=null;
+ $("audio").pause();$("audio").removeAttribute("src");$("audio").load();
+ $("fileCard").classList.add("hidden");$("audioInput").value="";
+ transcriptSegments=[];realDuration=0;buildTranscript([]);renderWave();paintWave();resetResult();
+};
+$("dropzone").addEventListener("dragover",e=>{e.preventDefault();$("dropzone").classList.add("dragover")});
+$("dropzone").addEventListener("dragleave",()=>$("dropzone").classList.remove("dragover"));
+$("dropzone").addEventListener("drop",e=>{
+ e.preventDefault();$("dropzone").classList.remove("dragover");setFile(e.dataTransfer.files[0]);
+});
+
+$("analyseBtn").onclick=async()=>{
+ if(!selectedFile){toast("Choose an audio file first.");$("audioInput").click();return}
+ $("analyseBtn").disabled=true;$("processing").classList.add("show");
+ $("processText").textContent="Running Whisper large-v3 on the server";
+ $("progressBar").style.width="10%";
+ let progress=10;
+ const progressTimer=setInterval(()=>{
+  progress=Math.min(progress+2,90);$("progressBar").style.width=progress+"%";
+ },1000);
+ try{
+  const form=new FormData();form.append("audio",selectedFile);
+  const response=await fetch("/api/transcribe",{method:"POST",body:form});
+  const result=await response.json();
+  if(!response.ok)throw new Error(result.detail||"Transcription request failed.");
+  if(!Array.isArray(result.segments))throw new Error("The API response did not contain transcript segments.");
+  const detection=result.fraud_detection;
+  renderFraudDetection(detection);
+  buildTranscript(result.segments);
+  realDuration=Number(result.duration_seconds)||0;
+  const findingCount=detection
+   ? Number(detection.finding_count??detection.findings?.length??0) : 0;
+  const validConfidences=Array.isArray(detection?.findings)
+   ? detection.findings.map(f=>Number(f.confidence))
+      .filter(n=>Number.isFinite(n)&&n>=0&&n<=1)
+   : [];
+  const confidenceBadge=$("aggregateConfidence");
+  if(findingCount>0&&validConfidences.length){
+   const avg=Math.round(validConfidences.reduce((a,b)=>a+b,0)/validConfidences.length*100);
+   $("aggregateConfidenceValue").textContent=avg+"%";
+   $("aggregateConfidenceBar").style.width=avg+"%";
+   confidenceBadge.style.display="block";
+   confidenceBadge.title="Average confidence of individual rule matches; not an overall fraud probability.";
+  }else{
+   confidenceBadge.style.display="none";
+  }
+
+
+  if(!detection){
+   $("alertSymbol").textContent="!";
+   $("alertTitle").textContent="Detection Results Unavailable";
+   $("alertDescription").textContent=`${result.language_detected||"Unknown language"} · ${result.segments.length} segments · No detection result`;
+   $("overviewText").textContent="Transcription completed, but the API did not return fraud-detection results. No verdict is available.";
+  }else if(findingCount>0){
+   $("alertSymbol").textContent="⚠";
+   $("alertTitle").textContent="Review Recommended";
+   $("alertDescription").textContent=`${result.language_detected||"Unknown language"} · ${result.segments.length} segments · ${findingCount} rule matches`;
+   $("overviewText").textContent=`Transcription completed with ${result.model||"Whisper"}. Detection status: ${detection.status||"review"}. ${findingCount} configured rule matches were found. These are indicators for review, not proof of a violation.`;
+  }else{
+   $("alertSymbol").textContent="✓";
+   $("alertTitle").textContent="No Configured Rules Matched";
+   $("alertDescription").textContent=`${result.language_detected||"Unknown language"} · ${result.segments.length} segments · 0 rule matches`;
+   $("overviewText").textContent=`Transcription completed with ${result.model||"Whisper"}. No configured rules matched. This does not prove the call is safe or free of compliance issues.`;
+  }
+
+  $("transcriptTabText").textContent="This is the actual transcript returned by Whisper. Click a line to jump to its timestamp.";
+  selectTab("passages");paintWave();
+  toast(detection?"Transcription and fraud scan completed.":"Transcription completed; detection results unavailable.");
+ }catch(error){
+  toast("Transcription failed: "+error.message);console.error(error);
+ }finally{
+  clearInterval(progressTimer);$("progressBar").style.width="100%";
+  $("processing").classList.remove("show");$("analyseBtn").disabled=false;
+ }
+};
+function selectTab(tab){
+ activeTab=tab;
+ document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));
+ $("passageList").classList.toggle("hidden",tab!=="passages");
+ $("overviewText").classList.toggle("hidden",tab!=="overview");
+ $("transcriptTabText").classList.toggle("hidden",tab!=="transcript");
+}
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>selectTab(b.dataset.tab));
+
+function seek(seconds){
+ const audio=$("audio");
+ if(!selectedFile){toast("Choose an audio file to play.");return}
+ if(!Number.isFinite(audio.duration)){toast("Audio is still loading.");return}
+ audio.currentTime=Math.min(Math.max(0,seconds),audio.duration);
+ audio.play().then(()=>$("playBtn").textContent="Ⅱ").catch(()=>{});
+}
+document.addEventListener("click",e=>{
+ const finding=e.target.closest(".finding-card");
+ if(finding){
+  const seconds=Number(finding.dataset.findingTime)||0;
+  selectTab("transcript");
+  const index=transcriptSegments.findIndex(s=>
+   seconds>=Number(s.start||0)&&seconds<=Number(s.end||s.start||0)
+  );
+  const line=index>=0?document.querySelector(`.line[data-index="${index}"]`):null;
+  if(line){
+   line.scrollIntoView({behavior:"smooth",block:"center"});
+   line.style.outline="2px solid #d97706";
+   line.style.outlineOffset="2px";
+  }
+  seek(seconds);
+  return;
+ }
+ const line=e.target.closest(".line");
+ if(line)seek(Number(line.dataset.time));
+});
+$("wave").onclick=e=>{
+ if(!selectedFile){toast("Choose an audio file first.");return}
+ const duration=$("audio").duration;
+ if(!Number.isFinite(duration))return;
+ const rect=$("wave").getBoundingClientRect();
+ seek(Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width))*duration);
+};
+$("playBtn").onclick=()=>{
+ if(!selectedFile){toast("Choose an audio file to play.");$("audioInput").click();return}
+ const audio=$("audio");
+ if(audio.paused)audio.play().then(()=>$("playBtn").textContent="Ⅱ").catch(()=>toast("Could not play this audio format."));
+ else{audio.pause();$("playBtn").textContent="▶"}
+};
+$("audio").addEventListener("timeupdate",paintWave);
+$("audio").addEventListener("loadedmetadata",paintWave);
+$("audio").addEventListener("ended",()=>{$("playBtn").textContent="▶";paintWave()});
+$("muteBtn").onclick=()=>{
+ $("audio").muted=!$("audio").muted;$("muteBtn").textContent=$("audio").muted?"Muted":"◖))";
+};
+$("speedBtn").onclick=()=>{
+ speed=speed===1?1.25:speed===1.25?1.5:speed===1.5?2:1;
+ $("audio").playbackRate=speed;$("speedBtn").textContent=speed+"×";
+};
+
+$("comment").addEventListener("input",()=>$("counter").textContent=$("comment").value.length+"/500");
+document.querySelectorAll("[data-choice]").forEach(button=>button.onclick=()=>{
+ chosenAssessment=button.dataset.choice;
+ document.querySelectorAll("[data-choice]").forEach(b=>b.classList.toggle("selected",b===button));
+});
+$("saveBtn").onclick=async()=>{
+ if(!chosenAssessment){toast("Please choose an assessment first.");return}
+ const review={name:currentName||"Unnamed recording",assessment:chosenAssessment,
+  comment:$("comment").value,date:new Date().toLocaleString()};
+ try{
+  const response=await fetch("/api/reviews",{
+   method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(review)
+  });
+  if(!response.ok)throw new Error(await response.text());
+  records.unshift(await response.json());
+  renderHistory();toast("Assessment and comment saved.");
+  $("comment").value="";$("counter").textContent="0/500";chosenAssessment="";
+  document.querySelectorAll("[data-choice]").forEach(b=>b.classList.remove("selected"));
+ }catch(error){console.error(error);toast("Could not save review. Please try again.");}
+};
+async function loadReviews(){
+ try{
+  const response=await fetch("/api/reviews");
+  if(!response.ok)throw new Error(await response.text());
+  const saved=await response.json();
+  records.splice(0,records.length,...saved);
+  renderHistory();
+ }catch(error){console.error("Could not load saved reviews:",error);}
+}
+function renderHistory(){
+ const history=$("historyList");
+ if(!records.length){history.innerHTML='<div class="empty-note">No assessments saved yet. Review a call and save your assessment to see it here.</div>';return}
+ history.innerHTML=records.map(r=>{
+  const status=r.assessment==="Fraud detected"?"red":r.assessment==="False alarm"?"orange":"blue";
+  return `<div class="history-row"><div class="music-icon">♫</div><div class="file-meta">
+   <strong>${escapeHtml(r.name)}</strong><small>${escapeHtml(r.date)}${r.comment?" · "+escapeHtml(r.comment):""}</small>
+   </div><span class="status-pill ${status}">${escapeHtml(r.assessment)}</span></div>`;
+ }).join("");
+}
+function showView(which){
+ $("analysisView").classList.toggle("hidden",which!=="analysis");
+ $("historyView").classList.toggle("hidden",which!=="history");
+ $("navNew").classList.toggle("active",which==="analysis");
+ $("navHistory").classList.toggle("active",which==="history");
+}
+$("navNew").onclick=()=>showView("analysis");
+$("navHistory").onclick=()=>{renderHistory();showView("history")};
+$("backToNew").onclick=()=>showView("analysis");
+$("navSettings").onclick=()=>toast("Use the sun/moon control to change the theme.");
+$("transcriptSearch").addEventListener("input",()=>{
+ const q=$("transcriptSearch").value.trim().toLocaleLowerCase();
+ document.querySelectorAll(".line").forEach(line=>line.classList.toggle("hidden",!line.textContent.toLocaleLowerCase().includes(q)));
+});
+renderWave();paintWave();buildTranscript([]);renderHistory();loadReviews();
+</script>
+</body>
+</html>
